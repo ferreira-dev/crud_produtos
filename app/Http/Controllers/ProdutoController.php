@@ -10,12 +10,14 @@ class ProdutoController extends Controller
 {
     public function index()
     {
-        return view("teste");
+        return view("produtos.index");
     }
 
     public function get($idProduto)
     {
-        $produto = Produto::with("variacoes")->find($idProduto);
+        $produto = Produto::with(['variacoes' => function ($query) {
+            $query->select('produto_id', 'nome');
+        }])->find($idProduto);
 
         if(!$produto){
             return ["data" => false, "message" => "Não encontrado."];
@@ -38,12 +40,6 @@ class ProdutoController extends Controller
         return [
             "data" => $produtos
         ];
-        //TODO: criar filtros e paginação
-    }
-
-    public function novoProduto()
-    {
-        return "view blade - novo produto";
     }
 
     public function store(Request $req)
@@ -65,11 +61,7 @@ class ProdutoController extends Controller
 
         });
 
-        return response()->json([
-                "success" => true,
-                "message" => "Cadastrado com Sucesso."
-            ]
-        );
+        return redirect()->route('produtos.index')->with('success', 'Produto criado com sucesso!');
     }
 
     public function update(Produto $produto, Request $req)
@@ -96,10 +88,7 @@ class ProdutoController extends Controller
 
         });
 
-        return response()->json([
-            "success" => true,
-            "message" => "Atualizado com Sucesso."
-        ]);
+        return redirect()->route('produtos.index')->with('success', 'Produto atualizado com sucesso!');
     }
 
     public function destroy(Produto $produto)
@@ -109,22 +98,19 @@ class ProdutoController extends Controller
             $produto->variacoes()->delete();
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Produto e variações deletados com sucesso!'
-        ], 204);
+        return response()->json(['success' => true]);
     }
 
-    public function restore(Produto $produto)
+    public function restore(int $idProduto)
     {
-        DB::transaction(function () use ($produto) {
-            
+        DB::transaction(function () use ($idProduto) {
+            $produto = Produto::withTrashed()->findOrFail($idProduto);
             $produto->restore();
 
             $produto->variacoes()->restore();
         });
 
-        return response()->json(['message' => 'Produto e variações restaurados com sucesso!'], 200);
+        return response()->json(['success' => true]);
     }
 
 }
